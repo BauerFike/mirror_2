@@ -1,0 +1,50 @@
+header {
+	font: normal 15px/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif;
+	color: #333;
+	background: #F0F0F0;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 60px;
+}
+
+header img {
+	border: 0;
+	border-radius: 4px;
+	float: left;
+	width: 45px;
+	height: 45px;
+	margin: 7.5px;
+}
+
+header p {
+	margin: 0px;
+	line-height: 60px;
+	vertical-align: middle;
+}
+
+header a {
+	font-weight: bold;
+	color: #d22929;
+}
+
+.header_div {
+	position: absolute;
+	top: 0px;
+}
+
+.credits {
+	width: 300px;
+}
+
+.demo_name {
+	right: 10px;	
+}
+
+/* For tablets & smart phones */
+@media (max-width: 767px) {
+	.demo_name {
+		visibility: hidden;
+	}
+}

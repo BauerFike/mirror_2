@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+  <link href='https://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+  <link href='weather/css/weather-icons.css' rel='stylesheet' type='text/css'>
+
+
+  <style>
+    body{
+      background-color: #000;
+      color:#fff;
+      font-family: 'Lato', sans-serif;
+    }
+    .container {
+      margin: 0px auto;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+    }
+    .box {
+
+    }
+    #datetime{
+      font-size:3em;
+      text-align: right;
+      float:right;
+    }
+    #weather{
+      text-align: right;
+      font-size:1em;
+      float:right;
+    }
+    #content{
+      width:1000px;
+      position: absolute;
+      z-index: 1;
+      top: 45px;
+      bottom: 48px;
+      left: 25%;
+      overflow: hidden;
+      margin:auto;
+    }
+    #mails{
+      text-align: left;
+      width:30%;
+      float:left;
+    }
+  </style>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/annyang/2.1.0/annyang.min.js"></script>
+  <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+  <script language="JavaScript" src="gest/src/gest.js"></script>
+  <script language="JavaScript" src="scroll/scroll.js"></script>
+  <script language="JavaScript" src="getMails.js"></script>
+  <script src="https://apis.google.com/js/client.js?onload=checkAuth"> </script>
+</head>
+
+<body onload="loaded()">
+  <div id="content">
+    <div id="scroller">
+      <div class="container" id="containerHome">
+        <div id="authorize-div" style="display: none">
+          <span>Authorize access to Gmail API</span>
+          <!--Button for the user to click to initiate auth sequence -->
+          <button id="authorize-button" onclick="handleAuthClick(event)">
+            Authorize
+          </button>
+        </div>
+        <div id="mails"></div>
+        <div id="datetime"></div>
+        <div id="weather"></div>
+        <div style="clear: both;"></div> <!-- Clear the float -->
+      </div>
+      <div style="display:none" class="container" id="containerCamera">
+        <video  width="640" height="480" class="box" autoplay="true" id="videoElement"></video>
+        <canvas  width="640" height="480" style="display:none" class="box" id="canvas" ></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+   var video = document.querySelector("#videoElement");
+   var canvas = document.getElementById("canvas");
+   var context = canvas.getContext("2d");
+   navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia || navigator.oGetUserMedia;
+
+   if (navigator.getUserMedia) {       
+    navigator.getUserMedia({video: true}, handleVideo, videoError);
+  };
+
+  function handleVideo(stream) {
+    video.src = window.URL.createObjectURL(stream);
+  };
+
+  function videoError(e) {
+    // do something
+  };
+  var mode = "";
+  if (annyang) {
+      // Let's define a command.
+      var commands = {
+        'camera': function(){
+          mode = "camera";
+          hideContainers();
+          $("#containerCamera").show();
+        },
+        'torna': function(){
+          mode = "home";
+          hideContainers();
+          $("#containerHome").show();
+        },
+        'scatta': function() {
+          context.drawImage(video, 0, 0, 640, 480); 
+          $("#canvas").show();
+          $("#videoElement").hide();
+        },'foto': function() {
+          context.drawImage(video, 0, 0, 640, 480); 
+          $("#canvas").show();
+          $("#videoElement").hide();
+        },
+        'salva': function() {
+          var dataURL = canvas.toDataURL();
+          $.ajax({
+            type: "POST",
+            url: "script.php",
+            data: { 
+             imgBase64: dataURL
+           }
+         }).done(function(o) {
+          console.log(o); 
+          $("#canvas").hide();
+          $("#videoElement").show();
+      // If you want the file to be visible in the browser 
+      // - please modify the callback in javascript. All you
+      // need is to return the url to the file, you just saved 
+      // and than put the image in your browser.
+    });
+       },
+       'cancella': function(){
+        $("#canvas").hide();
+        $("#videoElement").show();
+      }
+    };
+    function hideContainers(){
+      $.each($(".container"),function(){
+        $(this).hide();
+      });
+    }
+  // Add our commands to annyang
+  annyang.addCommands(commands);
+
+  annyang.setLanguage("it-IT");
+  annyang.debug(true);
+
+  // Start listening.
+  annyang.start();
+}
+var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+var now = new Date($.now());
+var time = days[ now.getDay() ]+ ' ' + now.getDate() +' ' + months[ now.getMonth() ]+"</br>"+addZero(now.getHours()) + ":" + addZero(now.getMinutes()) + ":" + addZero(now.getSeconds());
+$("#datetime").html(time);
+setInterval(function() {
+  var now = new Date($.now());
+  $("#datetime").html(days[ now.getDay() ]+ ' ' + now.getDate() +' ' + months[ now.getMonth() ]+"</br>"+addZero(now.getHours()) + ":" + addZero(now.getMinutes()) + ":" + addZero(now.getSeconds()));
+}, 1000);
+function addZero(i) {
+  if (i < 10) {
+    i = "0" + i;
+  }
+  return i;
+}
+var weatherArray = [];
+$.getJSON("icons.json").done(function(o){
+  weatherArray = o;
+});
+
+$.ajax({
+  type: "GET",
+  url: "http://api.openweathermap.org/data/2.5/forecast/city?id=2800935&APPID=b86039b1b3029b5617ed4bd08358db79&units=metric",
+  dataType: "jsonp"
+}).done(function(o) {
+  console.log(o); 
+  var weatherString = "";
+  var old = "";
+  
+  weatherString = "<table>"; 
+  $.each(o.list,function(k,v){
+    var prefix = 'wi wi-';
+    var code = v.weather[0].id;
+    var icon = weatherArray[code].icon;
+    if (!(code > 699 && code < 800) && !(code > 899 && code < 1000)) {
+      icon = 'day-' + icon;
+    }
+    icon = prefix + icon;
+    dateObj = new Date(v.dt_txt.substring(0,10));
+    date = '<small>' + days[ dateObj.getDay() ] + '</small>' + ' ' + dateObj.getDate() +' ' + months[ dateObj.getMonth() ];
+    if(date != old)
+      weatherString += "<tr height='25px'><td colspan = '4'> </td></tr><tr><td  colspan = '4' >"+ date + "</td></tr>";    
+    var rain = "0.00mm"
+    if(v.rain!=undefined && v.rain["3h"]!=undefined )
+      rain = v.rain["3h"]+"mm";
+    weatherString += "<tr><td width='250px;'><small>"+v.dt_txt.substring(11,16) + " " + " </small></td><td  width='50px;'>" + v.main.temp + "°</td><td>" + "<i class='"+icon+"'></i></td><td> <small>("+ rain +")</small></td></tr>";
+    old = date;
+  });
+  weatherString += '</table>';
+  $("#weather").html(weatherString);
+
+});
+
+var myScroll;
+
+function loaded(){
+  myScroll = new IScroll('#content', { scrollX: true, freeScroll: true ,mouseWheel: true ,momentum : false ,bindToWrapper:true});
+
+  document.addEventListener('touchmove', function (e) { e.preventDefault(); }, false);
+
+  setInterval(function () {
+    myScroll.refresh();
+  }, 10);
+}
+
+
+gest.start();
+gest.options.sensitivity(80);
+$(document).ready(function(){
+
+
+  gest.options.subscribeWithCallback(function(gesture) {
+    var message = '';
+    if (gesture.direction) {
+      message = gesture.direction;
+    } else {
+      message = gesture.error.message;
+    } 
+    console.log(message);
+    if(message==="Right")
+      myScroll.scrollBy(0, -500,1000);
+    if(message==="Left")
+      myScroll.scrollBy(0, 500,1000);
+
+  });
+
+
+});
+
+</script>
+
+
+</body>
+</html>
+
